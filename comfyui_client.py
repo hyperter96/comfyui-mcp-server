@@ -21,22 +21,22 @@ class ComfyUIClient:
     def _get_available_models(self):
         """Fetch list of available checkpoint models from ComfyUI"""
         try:
-            response = requests.get(f"{self.base_url}/object_info/CheckpointLoaderSimple")
+            response = requests.get(f"{self.base_url}/object_info/CheckpointLoaderSimple", timeout=120)
             if response.status_code != 200:
                 logger.warning("Failed to fetch model list; using default handling")
                 return []
             data = response.json()
             models = data["CheckpointLoaderSimple"]["input"]["required"]["ckpt_name"][0]
-            logger.info(f"Available models: {models}")
+            logger.info("Available models: %s", models)
             return models
         except Exception as e:
-            logger.warning(f"Error fetching models: {e}")
+            logger.warning("Error fetching models: %s", e)
             return []
 
     def generate_image(self, prompt, width, height, workflow_id="basic_api_test", model=None):
         try:
             workflow_file = f"workflows/{workflow_id}.json"
-            with open(workflow_file, "r") as f:
+            with open(workflow_file, "r", encoding="utf-8") as f:
                 workflow = json.load(f)
 
             params = {"prompt": prompt, "width": width, "height": height}
@@ -44,7 +44,7 @@ class ComfyUIClient:
                 # Validate or correct model name
                 if model.endswith("'"):  # Strip accidental quote
                     model = model.rstrip("'")
-                    logger.info(f"Corrected model name: {model}")
+                    logger.info("Corrected model name: %s", model)
                 if self.available_models and model not in self.available_models:
                     raise Exception(f"Model '{model}' not in available models: {self.available_models}")
                 params["model"] = model
@@ -56,13 +56,13 @@ class ComfyUIClient:
                         raise Exception(f"Node {node_id} not found in workflow {workflow_id}")
                     workflow[node_id]["inputs"][input_key] = value
 
-            logger.info(f"Submitting workflow {workflow_id} to ComfyUI...")
+            logger.info("Submitting workflow %s to ComfyUI...", workflow_id)
             response = requests.post(f"{self.base_url}/prompt", json={"prompt": workflow})
             if response.status_code != 200:
                 raise Exception(f"Failed to queue workflow: {response.status_code} - {response.text}")
 
             prompt_id = response.json()["prompt_id"]
-            logger.info(f"Queued workflow with prompt_id: {prompt_id}")
+            logger.info("Queued workflow with prompt_id: %s", prompt_id)
 
             max_attempts = 30
             for _ in range(max_attempts):
@@ -75,7 +75,7 @@ class ComfyUIClient:
                         raise Exception(f"No output node with images found: {outputs}")
                     image_filename = outputs[image_node]["images"][0]["filename"]
                     image_url = f"{self.base_url}/view?filename={image_filename}&subfolder=&type=output"
-                    logger.info(f"Generated image URL: {image_url}")
+                    logger.info("Generated image URL: %s", image_url)
                     return image_url
                 time.sleep(1)
             raise Exception(f"Workflow {prompt_id} didn’t complete within {max_attempts} seconds")

@@ -39,7 +39,7 @@ mcp = FastMCP("ComfyUI_MCP_Server", lifespan=app_lifespan)
 @mcp.tool()
 def generate_image(params: str) -> dict:
     """Generate an image using ComfyUI"""
-    logger.info(f"Received request with params: {params}")
+    logger.info("Received request with params: %s", params)
     try:
         param_dict = json.loads(params)
         prompt = param_dict["prompt"]
@@ -56,10 +56,10 @@ def generate_image(params: str) -> dict:
             workflow_id=workflow_id,
             model=model
         )
-        logger.info(f"Returning image URL: {image_url}")
+        logger.info("Returning image URL: %s", image_url)
         return {"image_url": image_url}
     except Exception as e:
-        logger.error(f"Error: {e}")
+        logger.error("Error: %s", e)
         return {"error": str(e)}
 
 # WebSocket server
@@ -68,7 +68,7 @@ async def handle_websocket(websocket, path):
     try:
         async for message in websocket:
             request = json.loads(message)
-            logger.info(f"Received message: {request}")
+            logger.info("Received message: %s", request)
             if request.get("tool") == "generate_image":
                 result = generate_image(request.get("params", ""))
                 await websocket.send(json.dumps(result))
